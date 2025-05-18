@@ -1,0 +1,5 @@
+// TRTC配置
+module.exports = {
+  SDKAPPID: 0, // 替换为你的 SDKAppID
+  SECRETKEY: '' // 替换为你的密钥
+}; 

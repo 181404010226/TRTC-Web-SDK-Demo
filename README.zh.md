@@ -30,7 +30,28 @@
 
 ### 步骤3：运行 Demo
 
-使用 Chrome 浏览器打开 Demo 根目录下的`index.html`文件即可运行 Demo。
+1. 复制配置模板文件并创建您的配置文件
+
+```bash
+# 复制示例配置文件
+cp config.js.example config.js
+
+# 编辑配置文件，填入您的实际配置
+```
+
+在 `config.js` 文件中，找到以下代码并替换为您自己的 SDKAppID 和 SDKSecretKey：
+
+```javascript
+// TRTC配置
+module.exports = {
+  SDKAPPID: 0, // 替换为你的 SDKAppID
+  SECRETKEY: '' // 替换为你的密钥
+};
+```
+
+> 注意: 为了安全起见，config.js 文件已被添加到 .gitignore 中，确保您的密钥信息不会被提交到版本控制系统中。
+
+2. 使用 Chrome 浏览器打开 Demo 根目录下的`index.html`文件即可运行 Demo。
 
 - 输入 userId 和 roomId
 - 点击【Enter Room】按钮进入房间
@@ -207,7 +228,7 @@ TRTC Web SDK 对浏览器的详细支持度，您可以查看 [TRTC Web SDK 对�
 | -------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | NotFoundError        | 找不到满足请求参数的媒体类型（包括音频、视频、屏幕分享）。 例如：PC 没有摄像头，但是请求浏览器获取视频流，则会报此错误。 | 建议在通话开始前引导用户检查通话所需的摄像头或麦克风等设备，若没有摄像头且需要进行语音通话，可在 [TRTC.createStream({ audio: true, video: false })](https://web.sdk.qcloud.com/trtc/webrtc/doc/zh-cn/TRTC.html#.createStream) 指明仅采集麦克风。 |
 | NotAllowedError      | 用户拒绝了当前的浏览器实例的访问音频、视频、屏幕分享请求。   | 提示用户不授权摄像头/麦克风访问将无法进行音视频通话。        |
-| NotReadableError     | 用户已授权使用相应的设备，但由于操作系统上某个硬件、浏览器或者网页层面发生的错误导致设备无法被访问。 | 根据浏览器的报错信息处理，并提示用户“暂时无法访问摄像头/麦克风，请确保当前没有其他应用请求访问摄像头/麦克风，并重试”。 |
+| NotReadableError     | 用户已授权使用相应的设备，但由于操作系统上某个硬件、浏览器或者网页层面发生的错误导致设备无法被访问。 | 根据浏览器的报错信息处理，并提示用户"暂时无法访问摄像头/麦克风，请确保当前没有其他应用请求访问摄像头/麦克风，并重试"。 |
 | OverConstrainedError | cameraId/microphoneId 参数的值无效。                         | 请确保 cameraId/microphoneId 传值正确且有效。                |
 | AbortError           | 由于某些未知原因导致设备无法被使用。                         | -                                                            |
 更多详情请参见 [initialize](https://web.sdk.qcloud.com/trtc/webrtc/doc/zh-cn/LocalStream.html?#initialize) 。
@@ -252,19 +273,19 @@ Web端支持发起混流，[点击查看如何调用混流转码接口](https://
 若您使用 [TRTC.createStream](https://web.sdk.qcloud.com/trtc/webrtc/doc/zh-cn/TRTC.html#createStream) 接口进行采集，则无需手动设置 3A 参数，SDK 默认开启 3A。
 
 ### 四、其他
-####  运行 Web 端 SDK 时，出现错误：“RtcError: no valid ice candidate found”该如何处理？
+####  运行 Web 端 SDK 时，出现错误："RtcError: no valid ice candidate found"该如何处理？
 出现该错误说明 TRTC Web SDK 在建立媒体传输通道时失败，请检查防火墙配置。TRTC Web SDK 依赖以下端口进行数据传输，请将其加入防火墙白名单，配置完成后，您可以通过访问并体验 [官网 Demo](https://web.sdk.qcloud.com/trtc/webrtc/demo/latest/official-demo/index.html) 检查配置是否生效。
 请查看 [应对防火墙限制相关](https://cloud.tencent.com/document/product/647/34399)
 
 
-####  出现客户端错误："RtcError: ICE/DTLS Transport connection failed" 或 “RtcError: DTLS Transport connection timeout”该如何处理？
+####  出现客户端错误："RtcError: ICE/DTLS Transport connection failed" 或 "RtcError: DTLS Transport connection timeout"该如何处理？
 出现该错误说明 TRTC Web SDK 在建立媒体传输通道时失败，请检查防火墙配置。TRTC Web SDK 依赖以下端口进行数据传输，请将其加入防火墙白名单，配置完成后，您可以通过访问并体验 [官网 Demo](https://web.sdk.qcloud.com/trtc/webrtc/demo/latest/official-demo/index.html) 检查配置是否生效。
 请查看 [应对防火墙限制相关](https://cloud.tencent.com/document/product/647/34399)
 
 ### Web 端 SDK 可以获取当前音量大小吗？
 可以通过 [getAudioLevel](https://web.sdk.qcloud.com/trtc/webrtc/doc/zh-cn/LocalStream.html#getAudioLevel) 获取当前音量大小，[详细教程请查看](https://web.sdk.qcloud.com/trtc/webrtc/doc/zh-cn/tutorial-13-basic-switch-camera-mic.html) 。
 
-#### 什么情况会触发 Client.on(‘client-banned’)？
+#### 什么情况会触发 Client.on('client-banned')？
 通过后台 RESTAPI [移除用户](https://cloud.tencent.com/document/product/647/40496?from=10680) 会触发这个事件。需要注意的是同名用户同时登录不会触发这个事件，这种行为是业务逻辑错误，业务应当从逻辑上避免。若客户需要房间内成员互踢管理，建议客户使用 WebIM SDK实现相关逻辑。
 
 
@@ -284,7 +305,7 @@ Web端支持发起混流，[点击查看如何调用混流转码接口](https://
 需要设置 [createClient](https://web.sdk.qcloud.com/trtc/webrtc/doc/zh-cn/TRTC.html#.createClient) 的 pureAudioPushMode 参数。
 
 
-#### 出现Client.on(‘error’)问题该如何处理？
+#### 出现Client.on('error')问题该如何处理？
 这个表示 SDK 遇到不可恢复错误，业务层要么刷新页面重试要么调用 Client.leave 退房后再调用 Client.join 重试。
 
 #### 小程序和 Web 端支持自定义流ID吗？

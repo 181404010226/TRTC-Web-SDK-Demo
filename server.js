@@ -3,6 +3,8 @@ const bodyParser = require('body-parser');
 const path = require('path');
 // 引入腾讯云官方SDK
 const TLSSigAPIv2 = require('tls-sig-api-v2');
+// 引入配置文件
+const config = require('./config');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -17,9 +19,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// TRTC配置 - 需要替换成你的实际配置
-const SDKAPPID = 1600087213; // 替换为你的 SDKAppID
-const SECRETKEY = 'b95c36f2834dc92f8868c365c1061374d01c83fdc2740f4e6cbf65e9749dbe93'; // 替换为你的密钥 - 注意：这个密钥应该保密，生产环境应存储在环境变量中
+// TRTC配置从config.js导入
+const SDKAPPID = config.SDKAPPID;
+const SECRETKEY = config.SECRETKEY;
 
 // 创建签名实例
 const api = new TLSSigAPIv2.Api(SDKAPPID, SECRETKEY);

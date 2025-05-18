@@ -28,14 +28,28 @@ cd TRTC_Web-main/quick-demo-js
 npm install
 ```
 
-3. 配置您的应用信息
+3. 创建并配置您的应用信息
 
-在 `server.js` 文件中，找到以下代码并替换为您自己的 SDKAppID 和 SDKSecretKey：
+复制 `config.js.example` 文件并重命名为 `config.js`，然后编辑该文件，填入您的 SDKAppID 和 SDKSecretKey：
+
+```bash
+# 复制示例配置文件
+cp config.js.example config.js
+
+# 编辑配置文件，填入您的实际配置
+```
+
+在 `config.js` 文件中，找到以下代码并替换为您自己的 SDKAppID 和 SDKSecretKey：
 
 ```javascript
-const SDKAPPID = 1400000000; // 替换为你的 SDKAppID
-const SECRETKEY = ''; // 替换为你的密钥
+// TRTC配置
+module.exports = {
+  SDKAPPID: 0, // 替换为你的 SDKAppID
+  SECRETKEY: '' // 替换为你的密钥
+};
 ```
+
+> 注意: 为了安全起见，config.js 文件已被添加到 .gitignore 中，确保您的密钥信息不会被提交到版本控制系统中。
 
 4. 启动服务器
 
@@ -50,7 +64,7 @@ npm start
 ### 创建会议
 
 1. 打开浏览器访问 http://localhost:3000
-2. 输入 SDKAppID、SDKSecretKey、用户ID和房间ID
+2. 输入用户ID和房间ID
 3. 点击「进入房间」按钮
 4. 选择是否开启音频/视频
 5. 成功进入房间后，您可以：
