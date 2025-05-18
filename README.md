@@ -1,38 +1,77 @@
-This document describes how to run the TRTC web quick demo (Vanilla js).
+# TRTC Web 快速演示项目
 
-English | [简体中文](./README.zh.md)
+这是一个基于腾讯云实时音视频(TRTC)的Web演示项目，包含邀请功能，允许互联网上的任何人通过链接加入您的视频会议。
 
-## Online Demo
+## 功能特点
 
-We offer an [online web demo (Vanilla js)](https://web.sdk.qcloud.com/trtc/webrtc/v5/demo/quick-demo-js/index.html) for you to experience TRTC calling capability.
+- 实时音视频通话
+- 生成分享链接邀请他人加入
+- 屏幕共享
+- 文字聊天
+- 多语言支持（中文/英文）
 
-Enter your application’s `SDKAppID` and `SDKSecretKey` on the webpage to enter a room. For how to get the `SDKAppID` and `SDKSecretKey`, see [TRTC RTC Engine](https://console.trtc.io/engine).
+## 安装与使用
 
-When entered the room, you can use the share link to invite others to try the audio/video call feature with you.
+### 前提条件
 
-## How to Run
+1. 注册[腾讯云账号](https://cloud.tencent.com/)
+2. 在[腾讯云实时音视频控制台](https://console.cloud.tencent.com/trtc)创建应用并获取 SDKAppID 和 SDKSecretKey
+3. 安装 [Node.js](https://nodejs.org/) (版本 10 或更高)
 
-1. Clone this repository
+### 安装步骤
+
+1. 克隆或下载本项目
+2. 进入项目目录并安装依赖
 
 ```bash
-git clone https://github.com/LiteAVSDK/TRTC_Web.git
+cd TRTC_Web-main/quick-demo-js
+npm install
 ```
 
-2. Enter this folder
+3. 配置您的应用信息
+
+在 `server.js` 文件中，找到以下代码并替换为您自己的 SDKAppID 和 SDKSecretKey：
+
+```javascript
+const SDKAPPID = 1400000000; // 替换为你的 SDKAppID
+const SECRETKEY = ''; // 替换为你的密钥
+```
+
+4. 启动服务器
 
 ```bash
-cd ./TRTC_Web/quick-demo-js
+npm start
 ```
 
-3. Open the `index.html` file in the Demo root directory with Chrome browser to run the Demo.
+服务器默认在 http://localhost:3000 运行
 
-4. Enter the `SDKAppID` and `SDKSecretKey`. For detailed directions, see [TRTC RTC Engine](https://console.trtc.io/engine).
+## 使用指南
 
-#### Try the demo
+### 创建会议
 
-- Input userId and roomId
-- Click the "Enter Room" button to enter the room
-- Click the "Start Local Audio/Video" button to capture microphone or camera
-- Click the "Stop Local Audio/Video" button to stop capturing microphone or camera
-- Click the "Start Share Screen" button to start screen sharing
-- Click the "Stop Share Screen" button to stop screen sharing
+1. 打开浏览器访问 http://localhost:3000
+2. 输入 SDKAppID、SDKSecretKey、用户ID和房间ID
+3. 点击「进入房间」按钮
+4. 选择是否开启音频/视频
+5. 成功进入房间后，您可以：
+   - 开启/关闭麦克风
+   - 开启/关闭摄像头
+   - 共享屏幕
+   - 发送聊天消息
+
+### 邀请他人
+
+1. 进入房间后，系统会显示邀请链接
+2. 点击复制按钮复制链接
+3. 将链接发送给您想邀请的人
+4. 对方点击链接即可加入会议
+
+## 注意事项
+
+- 生产环境中，请务必将 UserSig 生成代码部署在您的服务器上，避免密钥泄露
+- 默认配置适用于开发和测试，在正式上线前请注意调整安全配置
+- 本项目仅用于演示 TRTC 的基本功能，生产环境请根据实际情况开发更完善的应用
+
+## 问题反馈
+
+如有问题，请参考[腾讯云 TRTC 文档](https://cloud.tencent.com/document/product/647)或[GitHub 项目](https://github.com/LiteAVSDK/TRTC_Web)提交 issue。

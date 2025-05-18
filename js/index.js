@@ -435,11 +435,19 @@ function refreshLink() {
 }
 
 function createShareLink() {
-	const userId = String(Math.floor(Math.random() * 1000000));
-	const { userSig } = genTestUserSig({ sdkAppId, userId, sdkSecretKey });
+	// 生成随机用户ID作为访客ID
+	const visitorId = String(Math.floor(Math.random() * 1000000));
+	
+	// 直接使用当前房间ID
+	const currentRoomId = roomId;
+	
+	// 不再直接生成UserSig，而是创建一个不含UserSig的URL
+	// 访客点击链接后，将在invite.html页面请求后端API获取UserSig
 	const { origin } = window.location;
 	const pathname = window.location.pathname.replace('index.html', 'invite/invite.html');
-	return `${origin}${pathname}?userSig=${userSig}&&SDKAppId=${sdkAppId}&&userId=${userId}&&roomId=${roomId}`;
+	
+	// 只传递房间ID，UserSig将由服务器生成
+	return `${origin}${pathname}?roomId=${currentRoomId}`;
 }
 
 let clipboard = new ClipboardJS('#inviteBtn');

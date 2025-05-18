@@ -68,6 +68,15 @@
       font-weight: bold;
       margin-right: 5px;
     }
+    /* 添加的新样式 */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 10px;
+    }
+    .input-group {
+      margin-bottom: 15px;
+    }
   </style>
 </head>
 
@@ -96,6 +105,35 @@
         <div class='alert alert-primary' role='alert'>
           <span class='zh-cn'>你被邀请参加视频通话！</span>
           <span class='en'>You are invited to this video chat room！</span>
+        </div>
+        
+        <!-- 用户信息输入区域 -->
+        <div id="userInfoArea">
+          <div class="input-group mb-3">
+            <span class="input-group-text">
+              <span class='zh-cn'>昵称</span>
+              <span class='en'>Nickname</span>
+            </span>
+            <input type="text" class="form-control" id="userNickname" placeholder="Enter your nickname">
+          </div>
+          
+          <div class="input-group mb-3">
+            <span class="input-group-text">
+              <span class='zh-cn'>房间号</span>
+              <span class='en'>Room ID</span>
+            </span>
+            <input type="text" class="form-control" id="roomIdInput" placeholder="Enter room ID">
+          </div>
+        </div>
+        
+        <div id="loading" class="loading">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <div>
+            <span class='zh-cn'>正在获取会议信息...</span>
+            <span class='en'>Getting meeting information...</span>
+          </div>
         </div>
         
         <!-- Audio/Video Options -->
@@ -172,10 +210,22 @@
   const chatInput = document.getElementById('chatInput');
   const sendMessageBtn = document.getElementById('sendMessage');
   const chatMessages = document.getElementById('chatMessages');
+  const userNickname = document.getElementById('userNickname');
+  const roomIdInput = document.getElementById('roomIdInput');
+  const loadingElement = document.getElementById('loading');
   
   let audioEnabled = false;
   let videoEnabled = false;
   let trtc = TRTC.create();
+
+  // 设置默认昵称
+  userNickname.value = `Guest_${Math.floor(Math.random() * 10000)}`;
+  
+  // 从URL获取房间ID并填入输入框
+  const roomIdFromUrl = getQueryString('roomId');
+  if (roomIdFromUrl) {
+    roomIdInput.value = roomIdFromUrl;
+  }
 
   language.addEventListener('click', () => {
     if (window.lang_ === 'zh-cn') {
@@ -220,15 +270,12 @@
   
   let playerContainer = document.getElementById('remote-container');
 
-  const userId = getQueryString('userId');
-  const sdkAppId = parseInt(getQueryString('sdkAppId'));
-  const userSig = getQueryString('userSIg');
-  const roomId = parseInt(getQueryString('roomId'));
-  if (!userId || !sdkAppId || !userSig) {
-    const origin = window.location.origin;
-    const pathname = window.location.pathname.replace('invite/invite.html', 'index.html');
-    window.location.href = `${origin}${pathname}`;
-  }
+  // 现在这些参数将会在用户点击加入按钮时通过API获取
+  let userId = null;
+  let sdkAppId = null;
+  let userSig = null;
+  let roomId = null;
+  
   const state = { url:window.location.href.split("?")[0] };
   window.history.pushState(state,'', 'invite.html');
   initDevice();
@@ -246,7 +293,7 @@
     if (message && trtc) {
       // Create message object
       const messageObj = {
-        userId: userId,
+        userId: userNickname.value || userId,
         message: message,
         timestamp: Date.now()
       };
@@ -318,57 +365,121 @@
     updateButtonLabels();
   });
   
+  // 用户点击加入会议
   joinBtn.addEventListener('click', async () => {
-    // Setup remote user events
-    trtc.on(TRTC.EVENT.REMOTE_VIDEO_AVAILABLE, ({ userId, streamType }) => {
-      const elementId = `${userId}_${streamType}`;
-      addStreamView(elementId);
-      trtc.startRemoteVideo({ userId, streamType, view: elementId });
-    });
-    
-    trtc.on(TRTC.EVENT.REMOTE_VIDEO_UNAVAILABLE, ({ userId, streamType }) => {
-      const elementId = `${userId}_${streamType}`;
-      removeStreamView(elementId);
-      trtc.stopRemoteVideo({ userId, streamType: TRTC.TYPE.STREAM_TYPE_MAIN});
-    });
-    
-    // Setup chat message receiving
-    trtc.on(TRTC.EVENT.CUSTOM_MESSAGE, (event) => {
-      try {
-        // Decode ArrayBuffer to string
-        const jsonString = new TextDecoder().decode(event.data);
-        // Parse JSON string to object
-        const messageObj = JSON.parse(jsonString);
-        
-        if (messageObj.userId !== userId) {
-          displayMessage(messageObj, false);
-        }
-      } catch (error) {
-        console.error('Failed to parse message:', error);
-      }
-    });
-    
-    // Join the room
-    await trtc.enterRoom({ roomId, sdkAppId, userId, userSig });
-    
-    // Start audio and video only if the checkboxes are not checked (not muted)
-    if (!muteAudioCheckbox.checked) {
-      await trtc.startLocalAudio();
-      audioEnabled = true;
+    // 验证房间ID
+    if (!roomIdInput.value) {
+      alert(window.lang_ === 'zh-cn' ? '请输入房间号' : 'Please enter a room ID');
+      return;
     }
     
-    if (!muteVideoCheckbox.checked) {
-      await trtc.startLocalVideo({
-        view: document.getElementById('local'),
-        option: {
-          profile: '1080p',
-        },
-      });
-      videoEnabled = true;
-    }
+    roomId = parseInt(roomIdInput.value);
     
-    updateButtonLabels();
+    // 显示加载状态
+    loadingElement.style.display = 'block';
     joinBtn.disabled = true;
+    
+    try {
+      // 向后端API请求UserSig
+      const nickname = userNickname.value || `Guest_${Math.floor(Math.random() * 10000)}`;
+      console.log(`Requesting UserSig for nickname: ${nickname}, roomId: ${roomId}`);
+      
+      const response = await fetch('../api/generate-usersig', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          roomId: roomId,
+          nickname: nickname
+        })
+      });
+      
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API error response:', errorText);
+        throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('Received data from server:', data);
+      
+      // 设置从服务器获取的参数
+      userId = data.userId;
+      sdkAppId = data.sdkAppId;
+      userSig = data.userSig;
+      
+      // Setup remote user events
+      trtc.on(TRTC.EVENT.REMOTE_VIDEO_AVAILABLE, ({ userId, streamType }) => {
+        const elementId = `${userId}_${streamType}`;
+        addStreamView(elementId);
+        trtc.startRemoteVideo({ userId, streamType, view: elementId });
+      });
+      
+      trtc.on(TRTC.EVENT.REMOTE_VIDEO_UNAVAILABLE, ({ userId, streamType }) => {
+        const elementId = `${userId}_${streamType}`;
+        removeStreamView(elementId);
+        trtc.stopRemoteVideo({ userId, streamType: TRTC.TYPE.STREAM_TYPE_MAIN});
+      });
+      
+      // Setup chat message receiving
+      trtc.on(TRTC.EVENT.CUSTOM_MESSAGE, (event) => {
+        try {
+          // Decode ArrayBuffer to string
+          const jsonString = new TextDecoder().decode(event.data);
+          // Parse JSON string to object
+          const messageObj = JSON.parse(jsonString);
+          
+          if (messageObj.userId !== nickname) {
+            displayMessage(messageObj, false);
+          }
+        } catch (error) {
+          console.error('Failed to parse message:', error);
+        }
+      });
+      
+      // Join the room
+      await trtc.enterRoom({ roomId, sdkAppId, userId, userSig });
+      
+      // Start audio and video only if the checkboxes are not checked (not muted)
+      if (!muteAudioCheckbox.checked) {
+        await trtc.startLocalAudio();
+        audioEnabled = true;
+      }
+      
+      if (!muteVideoCheckbox.checked) {
+        await trtc.startLocalVideo({
+          view: document.getElementById('local'),
+          option: {
+            profile: '1080p',
+          },
+        });
+        videoEnabled = true;
+      }
+      
+      updateButtonLabels();
+      
+    } catch (error) {
+      console.error('Failed to join the meeting:', error);
+      
+      // 显示更详细的错误信息
+      let errorMessage = window.lang_ === 'zh-cn' ? 
+        '加入会议失败，请稍后重试' : 
+        'Failed to join the meeting, please try again later';
+        
+      // 添加错误详情
+      if (error.message) {
+        errorMessage += `: ${error.message}`;
+      }
+      
+      alert(errorMessage);
+      joinBtn.disabled = false;
+    } finally {
+      // 隐藏加载状态
+      loadingElement.style.display = 'none';
+    }
   });
   
   leaveBtn.addEventListener('click', async () => {
