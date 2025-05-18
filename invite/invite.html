@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>TRTC 实时音视频</title>
+  <meta http-equiv='Content-Type' content='text/html; charset=UTF-8' />
+  <meta name='viewport' content='width=device-width, initial-scale=1, user-scalable=no, shrink-to-fit=no'>
+  <!-- CSS only -->
+  <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css' rel='stylesheet'
+        integrity='sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3' crossorigin='anonymous'>
+  <link href='../css/base.css' rel='stylesheet' type='text/css' />
+  <link rel="icon" href="https://web.sdk.qcloud.com/trtc/webrtc/assets/trtcio48.avif">
+  <!-- JavaScript Bundle with Popper -->
+  <script src='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js'
+          integrity='sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p'
+          crossorigin='anonymous'></script>
+  <style>
+    .control-panel {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .chat-container {
+      margin-top: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      height: 200px;
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      background-color: #f9f9f9;
+    }
+    .chat-input-container {
+      display: flex;
+      border-top: 1px solid #ddd;
+      padding: 10px;
+    }
+    .chat-input {
+      flex: 1;
+      border-radius: 3px;
+      border: 1px solid #ccc;
+      padding: 5px;
+    }
+    .send-btn {
+      margin-left: 10px;
+    }
+    .message {
+      margin-bottom: 5px;
+      padding: 5px;
+      border-radius: 5px;
+    }
+    .self-message {
+      background-color: #dcf8c6;
+      align-self: flex-end;
+      margin-left: 20%;
+    }
+    .other-message {
+      background-color: #f1f0f0;
+      align-self: flex-start;
+      margin-right: 20%;
+    }
+    .message-sender {
+      font-weight: bold;
+      margin-right: 5px;
+    }
+  </style>
+</head>
+
+<body>
+<!--nav bar-->
+<div class='container-fluid text-white header'>
+  <img class='zh-cn' src='https://web.sdk.qcloud.com/trtc/webrtc/assets/trtcio-headlogo.png'
+    style='height: 100%' />
+  <img class='en' src='https://web.sdk.qcloud.com/trtc/webrtc/assets/trtcio-headlogo.png' style='height: 100%' />
+  <div style='flex-direction: row;display: flex;justify-content: center;align-items: center'>
+    <div id='language'>中/En</div>
+    <a class='github' href='https://github.com/LiteAVSDK/TRTC_Web' target="_blank">
+      <svg height='32' aria-hidden='true' viewBox='0 0 16 16' version='1.1' width='32' data-view-component='true'
+           class='octicon octicon-mark-github v-align-middle'>
+        <path fill-rule='evenodd'
+              d='M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z'></path>
+      </svg>
+    </a>
+  </div>
+</div>
+
+<div class='container-fluid'>
+  <div class='row justify-content-center'>
+    <div class='col-md-10 col-sm-12'>
+      <div class='content'>
+        <div class='alert alert-primary' role='alert'>
+          <span class='zh-cn'>你被邀请参加视频通话！</span>
+          <span class='en'>You are invited to this video chat room！</span>
+        </div>
+        
+        <!-- Audio/Video Options -->
+        <div class="mb-3">
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" id="muteAudioCheckbox" checked>
+            <label class="form-check-label" for="muteAudioCheckbox">
+              <span class='zh-cn'>静音</span>
+              <span class='en'>Mute Audio</span>
+            </label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" id="muteVideoCheckbox" checked>
+            <label class="form-check-label" for="muteVideoCheckbox">
+              <span class='zh-cn'>关闭视频</span>
+              <span class='en'>Turn Off Video</span>
+            </label>
+          </div>
+        </div>
+        
+        <button type='button' class='btn btn-primary' id='join' style='margin-bottom: 10px'>
+          <span class='zh-cn'>加入</span>
+          <span class='en'>Join</span>
+        </button>
+        <button type='button' class='btn btn-primary' id='leave' style='margin-bottom: 10px'>
+          <span class='zh-cn'>离开</span>
+          <span class='en'>Leave</span>
+        </button>
+        
+        <div class="control-panel">
+          <button type='button' class='btn btn-secondary btn-sm' id='toggleAudio'>
+            <span class='zh-cn'>打开麦克风</span>
+            <span class='en'>Turn On Mic</span>
+          </button>
+          <button type='button' class='btn btn-secondary btn-sm' id='toggleVideo'>
+            <span class='zh-cn'>打开摄像头</span>
+            <span class='en'>Turn On Camera</span>
+          </button>
+        </div>
+        
+        <div class='local' style='max-width: 640px;' id='local'></div>
+        <div class='player' id='remote-container'></div>
+        
+        <!-- Chat functionality -->
+        <div class="chat-container">
+          <div class="chat-messages" id="chatMessages"></div>
+          <div class="chat-input-container">
+            <input type="text" class="chat-input" id="chatInput" placeholder="Type a message...">
+            <button class="btn btn-primary send-btn" id="sendMessage">
+              <span class='zh-cn'>发送</span>
+              <span class='en'>Send</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<div id='console'>Open vConsole</div>
+<script src='https://cdn.bootcss.com/vConsole/3.3.4/vconsole.min.js'></script>
+<script src='https://web.sdk.qcloud.com/trtc/webrtc/v5/dist/trtc.js'></script>
+<script src='https://cdn-go.cn/aegis/aegis-sdk/latest/aegis.min.js'></script>
+<script>
+  window.lang_ = getLanguageKey();
+
+  const joinBtn = document.getElementById('join');
+  const leaveBtn = document.getElementById('leave');
+  const language = document.getElementById('language');
+  const toggleAudioBtn = document.getElementById('toggleAudio');
+  const toggleVideoBtn = document.getElementById('toggleVideo');
+  const muteAudioCheckbox = document.getElementById('muteAudioCheckbox');
+  const muteVideoCheckbox = document.getElementById('muteVideoCheckbox');
+  const chatInput = document.getElementById('chatInput');
+  const sendMessageBtn = document.getElementById('sendMessage');
+  const chatMessages = document.getElementById('chatMessages');
+  
+  let audioEnabled = false;
+  let videoEnabled = false;
+  let trtc = TRTC.create();
+
+  language.addEventListener('click', () => {
+    if (window.lang_ === 'zh-cn') {
+      const zhList = document.querySelectorAll('.zh-cn');
+      for (const item of zhList) {
+        item.style.display = 'none';
+      }
+      const enList = document.querySelectorAll('.en');
+      for (const item of enList) {
+        item.style.display = 'block';
+      }
+      window.lang_ = 'en'
+    } else if (window.lang_ === 'en') {
+      const zhList = document.querySelectorAll('.zh-cn');
+      for (const item of zhList) {
+        item.style.display = 'block';
+      }
+      const enList = document.querySelectorAll('.en');
+      for (const item of enList) {
+        item.style.display = 'none';
+      }
+      window.lang_ = 'zh-cn';
+    }
+    updateButtonLabels();
+  });
+  
+  function updateButtonLabels() {
+    // Update toggle audio button text based on current state
+    if (audioEnabled) {
+      toggleAudioBtn.innerHTML = window.lang_ === 'zh-cn' ? '关闭麦克风' : 'Turn Off Mic';
+    } else {
+      toggleAudioBtn.innerHTML = window.lang_ === 'zh-cn' ? '打开麦克风' : 'Turn On Mic';
+    }
+    
+    // Update toggle video button text based on current state
+    if (videoEnabled) {
+      toggleVideoBtn.innerHTML = window.lang_ === 'zh-cn' ? '关闭摄像头' : 'Turn Off Camera';
+    } else {
+      toggleVideoBtn.innerHTML = window.lang_ === 'zh-cn' ? '打开摄像头' : 'Turn On Camera';
+    }
+  }
+  
+  let playerContainer = document.getElementById('remote-container');
+
+  const userId = getQueryString('userId');
+  const sdkAppId = parseInt(getQueryString('sdkAppId'));
+  const userSig = getQueryString('userSIg');
+  const roomId = parseInt(getQueryString('roomId'));
+  if (!userId || !sdkAppId || !userSig) {
+    const origin = window.location.origin;
+    const pathname = window.location.pathname.replace('invite/invite.html', 'index.html');
+    window.location.href = `${origin}${pathname}`;
+  }
+  const state = { url:window.location.href.split("?")[0] };
+  window.history.pushState(state,'', 'invite.html');
+  initDevice();
+  
+  // Chat functionality
+  sendMessageBtn.addEventListener('click', sendChatMessage);
+  chatInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      sendChatMessage();
+    }
+  });
+  
+  function sendChatMessage() {
+    const message = chatInput.value.trim();
+    if (message && trtc) {
+      // Create message object
+      const messageObj = {
+        userId: userId,
+        message: message,
+        timestamp: Date.now()
+      };
+      
+      try {
+        // Send message via SignalChannel API
+        trtc.sendCustomMessage({
+          cmdId: 1, // Required cmdId parameter (1-10)
+          data: new TextEncoder().encode(JSON.stringify(messageObj)).buffer // Convert string to ArrayBuffer
+        });
+        
+        // Add message to chat UI
+        displayMessage(messageObj, true);
+        // Clear input
+        chatInput.value = '';
+      } catch (error) {
+        console.error('Failed to send message:', error);
+      }
+    }
+  }
+  
+  function displayMessage(messageObj, isSelf) {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message');
+    messageDiv.classList.add(isSelf ? 'self-message' : 'other-message');
+    
+    const senderSpan = document.createElement('span');
+    senderSpan.classList.add('message-sender');
+    senderSpan.textContent = isSelf ? 
+      (window.lang_ === 'zh-cn' ? '你' : 'You') : 
+      messageObj.userId;
+    
+    const messageContent = document.createElement('span');
+    messageContent.textContent = messageObj.message;
+    
+    messageDiv.appendChild(senderSpan);
+    messageDiv.appendChild(messageContent);
+    chatMessages.appendChild(messageDiv);
+    
+    // Auto scroll to the latest message
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+  
+  // Toggle audio/video controls
+  toggleAudioBtn.addEventListener('click', async () => {
+    if (audioEnabled) {
+      await trtc.stopLocalAudio();
+      audioEnabled = false;
+    } else {
+      await trtc.startLocalAudio();
+      audioEnabled = true;
+    }
+    updateButtonLabels();
+  });
+  
+  toggleVideoBtn.addEventListener('click', async () => {
+    if (videoEnabled) {
+      await trtc.stopLocalVideo();
+      videoEnabled = false;
+    } else {
+      await trtc.startLocalVideo({
+        view: document.getElementById('local'),
+        option: {
+          profile: '1080p',
+        },
+      });
+      videoEnabled = true;
+    }
+    updateButtonLabels();
+  });
+  
+  joinBtn.addEventListener('click', async () => {
+    // Setup remote user events
+    trtc.on(TRTC.EVENT.REMOTE_VIDEO_AVAILABLE, ({ userId, streamType }) => {
+      const elementId = `${userId}_${streamType}`;
+      addStreamView(elementId);
+      trtc.startRemoteVideo({ userId, streamType, view: elementId });
+    });
+    
+    trtc.on(TRTC.EVENT.REMOTE_VIDEO_UNAVAILABLE, ({ userId, streamType }) => {
+      const elementId = `${userId}_${streamType}`;
+      removeStreamView(elementId);
+      trtc.stopRemoteVideo({ userId, streamType: TRTC.TYPE.STREAM_TYPE_MAIN});
+    });
+    
+    // Setup chat message receiving
+    trtc.on(TRTC.EVENT.CUSTOM_MESSAGE, (event) => {
+      try {
+        // Decode ArrayBuffer to string
+        const jsonString = new TextDecoder().decode(event.data);
+        // Parse JSON string to object
+        const messageObj = JSON.parse(jsonString);
+        
+        if (messageObj.userId !== userId) {
+          displayMessage(messageObj, false);
+        }
+      } catch (error) {
+        console.error('Failed to parse message:', error);
+      }
+    });
+    
+    // Join the room
+    await trtc.enterRoom({ roomId, sdkAppId, userId, userSig });
+    
+    // Start audio and video only if the checkboxes are not checked (not muted)
+    if (!muteAudioCheckbox.checked) {
+      await trtc.startLocalAudio();
+      audioEnabled = true;
+    }
+    
+    if (!muteVideoCheckbox.checked) {
+      await trtc.startLocalVideo({
+        view: document.getElementById('local'),
+        option: {
+          profile: '1080p',
+        },
+      });
+      videoEnabled = true;
+    }
+    
+    updateButtonLabels();
+    joinBtn.disabled = true;
+  });
+  
+  leaveBtn.addEventListener('click', async () => {
+    if (trtc) {
+      await trtc.stopLocalVideo();
+      await trtc.stopLocalAudio();
+      await trtc.stopRemoteVideo({userId: '*'})
+      await trtc.exitRoom();
+      trtc.off('*');
+      joinBtn.disabled = false;
+      audioEnabled = false;
+      videoEnabled = false;
+      updateButtonLabels();
+    }
+  });
+  
+  function getQueryString(name) {
+    var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)', 'i');
+    var r = window.location.search.substr(1)
+      .match(reg);
+    if (r != null) {
+      return unescape(r[2]);
+    }
+    return null;
+  }
+
+  function addStreamView(remoteId) {
+    let remoteDiv = document.getElementById(remoteId);
+    if (!remoteDiv) {
+      remoteDiv = document.createElement('div');
+      remoteDiv.setAttribute('id', remoteId);
+      remoteDiv.setAttribute('class', 'remote');
+      playerContainer.appendChild(remoteDiv);
+    }
+  }
+
+  function removeStreamView(remoteId) {
+    const remoteDiv = document.getElementById(remoteId);
+    if (remoteDiv) {
+      playerContainer.removeChild(remoteDiv);
+    }
+  }
+
+  async function initDevice() {
+    try {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: true
+        });
+        stream?.getTracks()
+          .forEach(track => track.stop());
+        if (!stream) {
+          joinBtn.disabled = true;
+        }
+      } catch (error) {
+        if (window.lang_ === 'en') {
+          window.alert('If you do not allow the current page to access the microphone and camera permissions, you may fail when publishing a local stream.');
+        } else {
+          window.alert('如果不允许当前页面访问麦克风和摄像头权限，您在发布本地流的时候可能会失败。');
+        }
+        joinBtn.disabled = true;
+      }
+    } catch (e) {
+      console.error('get device failed', e);
+    }
+  }
+
+  function getLanguageKey () {
+    let lang = (navigator.language || navigator.userLanguage).toLowerCase();
+    if (lang.indexOf('zh') > -1) {
+      lang = 'zh-cn';
+    } else {
+      lang = 'en';
+    }
+    return lang;
+  }
+  
+  // Initialize button states
+  updateButtonLabels();
+</script>
+</body>
+
+</html>
