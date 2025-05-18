@@ -193,6 +193,10 @@
             <img id="app-info-doc" src="./icon/info.svg" alt="info" style="width: 20px; cursor: pointer; user-select: none; margin: 0 5px;">
           </span>
         </h1>
+        <div id="auto-config-indicator" style="display: none; margin-top: 5px; padding: 5px; background-color: #dff0d8; border-radius: 4px; text-align: center; color: #3c763d;">
+          <span class="en">Auto-configured from server</span>
+          <span class="zh-cn">已自动配置自服务器</span>
+        </div>
         <div class='input-list'>
           <div class='mb-3 input-group input-group-sm'>
             <span class='input-group-text'>SDKAppID</span>
@@ -379,9 +383,7 @@
   <script src='js/libs/clipboard.min.js'></script>
   <script src='js/libs/lib-generate-test-usersig.min.js'></script>
   <script src='js/libs/generateTestUserSig.js'></script>
-  <script src='js/tooltip.js'></script>
-  <script src='js/common.js'></script>
-  <script src='js/index.js'></script>
+  <script type="module" src='js/main.js'></script>
 </body>
 
 </html>

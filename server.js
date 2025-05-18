@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
+const fs = require('fs');
 // 引入腾讯云官方SDK
 const TLSSigAPIv2 = require('tls-sig-api-v2');
 // 引入配置文件
@@ -9,8 +10,39 @@ const config = require('./config');
 const app = express();
 const port = process.env.PORT || 3000;
 
+// TRTC配置从config.js导入
+const SDKAPPID = config.SDKAPPID;
+const SECRETKEY = config.SECRETKEY;
+
+// 创建签名实例
+const api = new TLSSigAPIv2.Api(SDKAPPID, SECRETKEY);
+
 // 配置应用
 app.use(bodyParser.json());
+
+// 处理首页请求 - 注入SDKAPPID和SECRETKEY到HTML页面
+app.get('/', (req, res) => {
+  // 读取index.html文件
+  let html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+  
+  // 在JavaScript中插入SDKAPPID和SECRETKEY
+  const scriptToInject = `
+    <script>
+      window.AUTO_CONFIG = {
+        sdkAppId: ${SDKAPPID},
+        sdkSecretKey: "${SECRETKEY}"
+      };
+    </script>
+  `;
+  
+  // 将脚本插入到head标签结束前
+  html = html.replace('</head>', `${scriptToInject}</head>`);
+  
+  // 发送修改后的HTML
+  res.send(html);
+});
+
+// 为其他静态资源提供服务
 app.use(express.static(path.join(__dirname)));
 
 // 打印请求日志的中间件
@@ -18,13 +50,6 @@ app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   next();
 });
-
-// TRTC配置从config.js导入
-const SDKAPPID = config.SDKAPPID;
-const SECRETKEY = config.SECRETKEY;
-
-// 创建签名实例
-const api = new TLSSigAPIv2.Api(SDKAPPID, SECRETKEY);
 
 // 生成UserSig的API接口 - 处理两种可能的路径
 app.post('/api/generate-usersig', handleGenerateUserSig);
@@ -69,4 +94,6 @@ function handleGenerateUserSig(req, res) {
 app.listen(port, () => {
   console.log(`TRTC server running on port ${port}`);
   console.log(`Server URL: http://localhost:${port}`);
+  console.log(`SDKAPPID: ${SDKAPPID}`);
+  console.log(`SECRETKEY: ${SECRETKEY.substring(0, 4)}${'*'.repeat(SECRETKEY.length - 8)}${SECRETKEY.substring(SECRETKEY.length - 4)}`);
 }); 
