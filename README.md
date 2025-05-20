@@ -24,7 +24,6 @@
 2. 进入项目目录并安装依赖
 
 ```bash
-cd TRTC_Web-main/quick-demo-js
 npm install
 ```
 
