@@ -10,6 +10,8 @@
         integrity='sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3' crossorigin='anonymous'>
   <link href='../css/base.css' rel='stylesheet' type='text/css' />
   <link rel="icon" href="https://web.sdk.qcloud.com/trtc/webrtc/assets/trtcio48.avif">
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <!-- JavaScript Bundle with Popper -->
   <script src='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js'
           integrity='sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p'
@@ -77,6 +79,93 @@
     .input-group {
       margin-bottom: 15px;
     }
+    /* 参会者数量显示样式 */
+    .participant-count-container .card {
+      border: 2px solid #007bff;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 123, 255, 0.1);
+    }
+    .participant-count-container .card-body {
+      padding: 20px;
+    }
+    .participant-count-container h2 {
+      font-size: 3rem;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+    /* 参会者列表样式 */
+    .participants-list-container .card {
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+    }
+    .participant-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px;
+      margin-bottom: 8px;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      background-color: #f8f9fa;
+      transition: all 0.3s ease;
+    }
+    .participant-item.speaking {
+      border-color: #28a745;
+      background-color: #d4edda;
+      box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+    }
+    .participant-info {
+      display: flex;
+      align-items: center;
+      flex: 1;
+    }
+    .participant-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, #007bff, #6610f2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      margin-right: 10px;
+      font-size: 14px;
+    }
+    .participant-name {
+      font-weight: 500;
+      color: #495057;
+    }
+    .participant-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .volume-indicator {
+      width: 60px;
+      height: 6px;
+      background-color: #e9ecef;
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+    .volume-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #28a745, #ffc107, #dc3545);
+      border-radius: 3px;
+      transition: width 0.1s ease;
+      width: 0%;
+    }
+    .mic-status {
+      font-size: 16px;
+      color: #6c757d;
+    }
+    .mic-status.active {
+      color: #28a745;
+    }
+    .mic-status.muted {
+      color: #dc3545;
+    }
   </style>
 </head>
 
@@ -105,6 +194,41 @@
         <div class='alert alert-primary' role='alert'>
           <span class='zh-cn'>你被邀请参加视频通话！</span>
           <span class='en'>You are invited to this video chat room！</span>
+        </div>
+        
+        <!-- 参会者数量显示 -->
+        <div class="participant-count-container mb-3">
+          <div class="card">
+            <div class="card-body text-center">
+              <h5 class="card-title">
+                <span class='zh-cn'>当前参会人数</span>
+                <span class='en'>Current Participants</span>
+              </h5>
+              <h2 class="text-primary" id="participantCount">0</h2>
+              <small class="text-muted">
+                <span class='zh-cn'>人在线</span>
+                <span class='en'>online</span>
+              </small>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 参会者列表 -->
+        <div class="participants-list-container mb-3">
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0">
+                <span class='zh-cn'>参会者列表</span>
+                <span class='en'>Participants List</span>
+              </h6>
+            </div>
+            <div class="card-body" id="participantsList">
+              <div class="text-muted text-center" id="noParticipants">
+                <span class='zh-cn'>暂无参会者</span>
+                <span class='en'>No participants yet</span>
+              </div>
+            </div>
+          </div>
         </div>
         
         <!-- 用户信息输入区域 -->
@@ -213,10 +337,17 @@
   const userNickname = document.getElementById('userNickname');
   const roomIdInput = document.getElementById('roomIdInput');
   const loadingElement = document.getElementById('loading');
+  const participantCountElement = document.getElementById('participantCount');
+  const participantsListElement = document.getElementById('participantsList');
+  const noParticipantsElement = document.getElementById('noParticipants');
   
   let audioEnabled = false;
   let videoEnabled = false;
   let trtc = TRTC.create();
+  let participantCount = 0; // 参会者数量计数器
+  let remoteUsers = new Set(); // 存储远程用户ID的集合
+  let participants = new Map(); // 存储参会者详细信息 {userId: {nickname, volume, isSpeaking, audioEnabled}}
+  let localUserId = null; // 本地用户ID
 
   // 设置默认昵称
   userNickname.value = `Guest_${Math.floor(Math.random() * 10000)}`;
@@ -342,9 +473,15 @@
     if (audioEnabled) {
       await trtc.stopLocalAudio();
       audioEnabled = false;
+      if (localUserId) {
+        updateUserMicStatus(localUserId, false);
+      }
     } else {
       await trtc.startLocalAudio();
       audioEnabled = true;
+      if (localUserId) {
+        updateUserMicStatus(localUserId, true);
+      }
     }
     updateButtonLabels();
   });
@@ -424,6 +561,36 @@
         trtc.stopRemoteVideo({ userId, streamType: TRTC.TYPE.STREAM_TYPE_MAIN});
       });
       
+      // 监听远程用户进入房间事件
+      trtc.on(TRTC.EVENT.REMOTE_USER_ENTER, ({ userId }) => {
+        addRemoteUser(userId);
+      });
+      
+      // 监听远程用户离开房间事件
+      trtc.on(TRTC.EVENT.REMOTE_USER_EXIT, ({ userId }) => {
+        removeRemoteUser(userId);
+      });
+      
+      // 监听音量变化事件
+      trtc.on(TRTC.EVENT.AUDIO_VOLUME, (event) => {
+        event.result.forEach(({ userId, volume }) => {
+          // 当 userId 为空字符串时，代表本地用户
+          const actualUserId = userId === '' ? localUserId : userId;
+          if (actualUserId && participants.has(actualUserId)) {
+            updateUserVolume(actualUserId, volume);
+          }
+        });
+      });
+      
+      // 监听远程音频可用/不可用事件
+      trtc.on(TRTC.EVENT.REMOTE_AUDIO_AVAILABLE, ({ userId }) => {
+        updateUserMicStatus(userId, true);
+      });
+      
+      trtc.on(TRTC.EVENT.REMOTE_AUDIO_UNAVAILABLE, ({ userId }) => {
+        updateUserMicStatus(userId, false);
+      });
+      
       // Setup chat message receiving
       trtc.on(TRTC.EVENT.CUSTOM_MESSAGE, (event) => {
         try {
@@ -442,6 +609,24 @@
       
       // Join the room
       await trtc.enterRoom({ roomId, sdkAppId, userId, userSig });
+      
+      // 成功加入房间后，更新参会者数量（包括本地用户）
+      localUserId = userId;
+      const currentUserNickname = userNickname.value || userId;
+      
+      // 添加本地用户到参会者列表
+      participants.set(userId, {
+        nickname: currentUserNickname,
+        volume: 0,
+        isSpeaking: false,
+        audioEnabled: !muteAudioCheckbox.checked
+      });
+      
+      updateParticipantCount();
+      updateParticipantsList();
+      
+      // 启用音量监听
+      trtc.enableAudioVolumeEvaluation(200); // 每200ms更新一次音量
       
       // Start audio and video only if the checkboxes are not checked (not muted)
       if (!muteAudioCheckbox.checked) {
@@ -493,6 +678,14 @@
       audioEnabled = false;
       videoEnabled = false;
       updateButtonLabels();
+      
+      // 重置参会者数量
+      remoteUsers.clear();
+      participants.clear();
+      localUserId = null;
+      participantCount = 0;
+      participantCountElement.textContent = '0';
+      updateParticipantsList();
     }
   });
   
@@ -560,6 +753,150 @@
   
   // Initialize button states
   updateButtonLabels();
+
+  // 更新参会者数量显示
+  function updateParticipantCount() {
+    // 如果已经加入房间，则包括本地用户，否则只显示远程用户数量
+    const isJoined = joinBtn.disabled; // 如果加入按钮被禁用，说明已经加入房间
+    participantCount = remoteUsers.size + (isJoined ? 1 : 0);
+    participantCountElement.textContent = participantCount;
+  }
+  
+  // 添加远程用户
+  function addRemoteUser(userId) {
+    if (!remoteUsers.has(userId)) {
+      remoteUsers.add(userId);
+      
+      // 添加到参会者列表（使用userId作为默认昵称，后续可以通过自定义消息更新）
+      participants.set(userId, {
+        nickname: userId,
+        volume: 0,
+        isSpeaking: false,
+        audioEnabled: true
+      });
+      
+      updateParticipantCount();
+      updateParticipantsList();
+      console.log(`用户 ${userId} 加入房间，当前参会人数: ${participantCount}`);
+    }
+  }
+  
+  // 移除远程用户
+  function removeRemoteUser(userId) {
+    if (remoteUsers.has(userId)) {
+      remoteUsers.delete(userId);
+      participants.delete(userId);
+      
+      updateParticipantCount();
+      updateParticipantsList();
+      console.log(`用户 ${userId} 离开房间，当前参会人数: ${participantCount}`);
+    }
+  }
+
+  // 生成用户头像字母
+  function getAvatarLetter(nickname) {
+    return nickname ? nickname.charAt(0).toUpperCase() : '?';
+  }
+  
+  // 创建参会者列表项
+  function createParticipantItem(userId, nickname, isLocal = false) {
+    const participantDiv = document.createElement('div');
+    participantDiv.className = 'participant-item';
+    participantDiv.id = `participant-${userId}`;
+    
+    const displayName = isLocal ? 
+      (window.lang_ === 'zh-cn' ? `${nickname} (你)` : `${nickname} (You)`) : 
+      nickname;
+    
+    participantDiv.innerHTML = `
+      <div class="participant-info">
+        <div class="participant-avatar">${getAvatarLetter(nickname)}</div>
+        <div class="participant-name">${displayName}</div>
+      </div>
+      <div class="participant-status">
+        <div class="volume-indicator">
+          <div class="volume-bar" id="volume-${userId}"></div>
+        </div>
+        <div class="mic-status" id="mic-${userId}">
+          <i class="fas fa-microphone"></i>
+        </div>
+      </div>
+    `;
+    
+    return participantDiv;
+  }
+  
+  // 更新参会者列表显示
+  function updateParticipantsList() {
+    // 清空现有列表
+    participantsListElement.innerHTML = '';
+    
+    if (participants.size === 0) {
+      participantsListElement.appendChild(noParticipantsElement);
+      return;
+    }
+    
+    // 添加本地用户（如果已加入）
+    if (localUserId && participants.has(localUserId)) {
+      const localParticipant = participants.get(localUserId);
+      const localItem = createParticipantItem(localUserId, localParticipant.nickname, true);
+      participantsListElement.appendChild(localItem);
+    }
+    
+    // 添加远程用户
+    participants.forEach((participant, userId) => {
+      if (userId !== localUserId) {
+        const participantItem = createParticipantItem(userId, participant.nickname, false);
+        participantsListElement.appendChild(participantItem);
+      }
+    });
+  }
+  
+  // 更新用户音量显示
+  function updateUserVolume(userId, volume) {
+    const volumeBar = document.getElementById(`volume-${userId}`);
+    const participantItem = document.getElementById(`participant-${userId}`);
+    const micStatus = document.getElementById(`mic-${userId}`);
+    
+    if (volumeBar) {
+      volumeBar.style.width = `${volume}%`;
+    }
+    
+    // 判断是否在讲话（音量大于10）
+    const isSpeaking = volume > 10;
+    
+    if (participantItem) {
+      if (isSpeaking) {
+        participantItem.classList.add('speaking');
+      } else {
+        participantItem.classList.remove('speaking');
+      }
+    }
+    
+    // 更新参会者信息
+    if (participants.has(userId)) {
+      const participant = participants.get(userId);
+      participant.volume = volume;
+      participant.isSpeaking = isSpeaking;
+    }
+  }
+  
+  // 更新用户麦克风状态
+  function updateUserMicStatus(userId, isEnabled) {
+    const micStatus = document.getElementById(`mic-${userId}`);
+    if (micStatus) {
+      micStatus.className = `mic-status ${isEnabled ? 'active' : 'muted'}`;
+      micStatus.innerHTML = isEnabled ? 
+        '<i class="fas fa-microphone"></i>' : 
+        '<i class="fas fa-microphone-slash"></i>';
+    }
+    
+    // 更新参会者信息
+    if (participants.has(userId)) {
+      const participant = participants.get(userId);
+      participant.audioEnabled = isEnabled;
+    }
+  }
 </script>
 </body>
 
